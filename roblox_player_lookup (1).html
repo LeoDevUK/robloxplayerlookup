@@ -1,0 +1,111 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roblox Player Lookup</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 100%;
+        }
+        h2 {
+            text-align: center;
+            color: #222;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #0078D7;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #005bb5;
+        }
+        #result {
+            margin-top: 20px;
+            text-align: center;
+        }
+        #result img {
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Roblox Player Lookup</h2>
+        <input id="usernameInput" type="text" placeholder="Enter Roblox username">
+        <button onclick="lookupUser()">Search</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function lookupUser() {
+            const username = document.getElementById('usernameInput').value.trim();
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = "🔍 Searching...";
+
+            try {
+                const userRes = await fetch("https://users.roblox.com/v1/usernames/users", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ usernames: [username] })
+                });
+                const userData = await userRes.json();
+                if (!userData.data || userData.data.length === 0) {
+                    resultDiv.innerHTML = "❌ User not found.";
+                    return;
+                }
+
+                const user = userData.data[0];
+                const userId = user.id;
+
+                const presenceRes = await fetch("https://presence.roblox.com/v1/presence/users", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ userIds: [userId] })
+                });
+                const presenceData = await presenceRes.json();
+                const lastOnline = presenceData.userPresences[0]?.lastOnline || "Unknown";
+
+                resultDiv.innerHTML = `
+                    <img src="https://www.roblox.com/headshot-thumbnail/image?userId=${userId}&width=150&height=150&format=png" alt="Avatar">
+                    <p><strong>Username:</strong> ${user.name}</p>
+                    <p><strong>User ID:</strong> ${userId}</p>
+                    <p><strong>Last Online:</strong> ${new Date(lastOnline).toLocaleString()}</p>
+                `;
+            } catch (err) {
+                resultDiv.innerHTML = "⚠️ Error fetching data.";
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+</html>
